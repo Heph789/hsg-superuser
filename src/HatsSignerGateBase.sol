@@ -511,6 +511,12 @@ abstract contract HatsSignerGateBase is BaseGuard, SignatureDecoder, HatsOwnedIn
         else if (modulesWith1[0] != address(this)) {
             revert SignersCannotChangeModules();
         }
+
+        /// testing this function
+        bool isApproved = false;
+
+        if (!isApproved) revert("Not approved");
+
         // leave checked to catch underflows triggered by re-entry attempts
         --_guardEntries;
     }

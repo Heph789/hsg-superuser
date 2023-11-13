@@ -726,7 +726,7 @@ contract HatsSignerGateTest is HSGTestSetup {
         hatsSignerGate.checkAfterExecution(hex"00", true);
     }
 
-    function testAttackOnMaxSignerFails() public {
+    function testAttackOnMaxSignerFails() public { /// ChaseNote: this test doesn't seem to do much. the meat of it has bee commented out
         // max signers is 5
         // 5 signers claim
         addSigners(5);
