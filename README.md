@@ -71,4 +71,8 @@ Although these permissions are granted to the wearer of a defined `ownerHat`, th
 
 ### Deployments
 
-Contracts aren’t yet deployed.
+#### Sepolia
+**HSGSuperFactory:** ```0x2271ed6e83C155059150b8e3Ff684D46c1749906```
+
+**Hats Contract:** ```0x3bc1A0Ad72417f2d411118085256fC53CBdDd137```
+
