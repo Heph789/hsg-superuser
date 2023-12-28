@@ -76,3 +76,6 @@ Although these permissions are granted to the wearer of a defined `ownerHat`, th
 
 **Hats Contract:** ```0x3bc1A0Ad72417f2d411118085256fC53CBdDd137```
 
+### Demos
+https://youtu.be/byJVwVAAzq0
+
