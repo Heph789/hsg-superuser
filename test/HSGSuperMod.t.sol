@@ -92,7 +92,6 @@ contract HSGSuperModTest is HSGSMTestSetup {
 
     function testTimelockExecTxByHatWearers() public {
         addSigners(3);
-        TimelockController timelock = hsgsuper.timelock();
 
         uint256 preNonce = safe.nonce();
         uint256 preValue = 1 ether;
@@ -103,24 +102,64 @@ contract HSGSuperModTest is HSGSMTestSetup {
         hoax(address(safe), preValue);
 
         // create the tx
-        bytes32 txHash = getTxHash(destAddress, transferValue, hex"00", safe);
+        {
+            TimelockController timelock = hsgsuper.timelock();
+            bytes32 txHash = getTxHash(destAddress, transferValue, hex"00", safe);
 
-        // have 3 signers sign it
-        bytes memory signatures = createNSigsForTx(txHash, 3);
+            // have 3 signers sign it
+            bytes memory signatures = createNSigsForTx(txHash, 3);
 
+            bytes32 id = _timelockScheduleAndExecute(
+                destAddress,
+                transferValue,
+                hex"00",
+                Enum.Operation.Call,
+                // not using the refunder
+                0,
+                0,
+                0,
+                address(0),
+                payable(address(0)),
+                signatures,
+                timelock
+            );
+
+            // confirm it we executed by checking done status and ETH balance changes
+            assertEq(timelock.isOperationDone(id), true);
+        }
+
+        assertEq(address(safe).balance, postValue);
+        assertEq(destAddress.balance, transferValue);
+        assertEq(safe.nonce(), preNonce + 1);
+        // emit log_uint(address(safe).balance);
+    }
+
+    function _timelockScheduleAndExecute(
+        address to,
+        uint256 value,
+        bytes memory data,
+        Enum.Operation operation,
+        uint256 safeTxGas,
+        uint256 baseGas,
+        uint256 gasPrice,
+        address gasToken,
+        address payable refundReceiver,
+        bytes memory signatures,
+        TimelockController timelock
+    ) internal returns (bytes32 id) {
         // have one of the signers submit/exec the tx
-        vm.prank(addresses[0]);
-        bytes32 id = hsgsuper.scheduleTransaction(
-            destAddress,
-            transferValue,
-            hex"00",
-            Enum.Operation.Call,
+        vm.startPrank(addresses[0]);
+        id = hsgsuper.scheduleTransaction(
+            to,
+            value,
+            data,
+            operation,
             // not using the refunder
-            0,
-            0,
-            0,
-            address(0),
-            payable(address(0)),
+            safeTxGas,
+            baseGas,
+            gasPrice,
+            gasToken,
+            refundReceiver,
             signatures
         );
         
@@ -132,25 +171,19 @@ contract HSGSuperModTest is HSGSMTestSetup {
 
         // execute the proposal
         hsgsuper.executeTimelockTransaction(
-            destAddress,
-            transferValue,
-            hex"00",
-            Enum.Operation.Call,
+            to,
+            value,
+            data,
+            operation,
             // not using the refunder
-            0,
-            0,
-            0,
-            address(0),
-            payable(address(0)),
+            safeTxGas,
+            baseGas,
+            gasPrice,
+            gasToken,
+            refundReceiver,
             signatures
         );
-
-        // confirm it we executed by checking done status and ETH balance changes
-        assertEq(timelock.isOperationDone(id), true);
-        assertEq(address(safe).balance, postValue);
-        assertEq(destAddress.balance, transferValue);
-        assertEq(safe.nonce(), preNonce + 1);
-        // emit log_uint(address(safe).balance);
+        vm.stopPrank();
     }
 
     function testSetTargetThreshold() public {
@@ -607,6 +640,8 @@ contract HSGSuperModTest is HSGSMTestSetup {
         mockIsWearerCall(addresses[0], signerHat, true);
         mockIsWearerCall(addresses[1], signerHat, true);
 
+        // have one of the signers submit/exec the tx
+        vm.startPrank(addresses[0]);
         hsgsuper.scheduleTransaction(
             address(safe),
             0,
@@ -635,6 +670,7 @@ contract HSGSuperModTest is HSGSMTestSetup {
             payable(address(0)),
             signatures
         );
+        vm.stopPrank();
     }
 
     function testCannotDisableGuard() public {
@@ -649,6 +685,8 @@ contract HSGSuperModTest is HSGSMTestSetup {
         mockIsWearerCall(addresses[0], signerHat, true);
         mockIsWearerCall(addresses[1], signerHat, true);
 
+        // have one of the signers submit/exec the tx
+        vm.startPrank(addresses[0]);
         hsgsuper.scheduleTransaction(
             address(safe),
             0,
@@ -677,6 +715,7 @@ contract HSGSuperModTest is HSGSMTestSetup {
             payable(address(0)),
             signatures
         );
+        vm.stopPrank();
     }
 
     function testCannotIncreaseThreshold() public {
@@ -695,6 +734,8 @@ contract HSGSuperModTest is HSGSMTestSetup {
         mockIsWearerCall(addresses[0], signerHat, true);
         mockIsWearerCall(addresses[1], signerHat, true);
 
+        // have one of the signers submit/exec the tx
+        vm.startPrank(addresses[0]);
         hsgsuper.scheduleTransaction(
             address(safe),
             0,
@@ -723,6 +764,8 @@ contract HSGSuperModTest is HSGSMTestSetup {
             payable(address(0)),
             signatures
         );
+        vm.stopPrank();
+        
     }
 
     function testCannotDecreaseThreshold() public {
@@ -742,6 +785,8 @@ contract HSGSuperModTest is HSGSMTestSetup {
         mockIsWearerCall(addresses[1], signerHat, true);
 
         
+        // have one of the signers submit/exec the tx
+        vm.startPrank(addresses[0]);
         hsgsuper.scheduleTransaction(
             address(safe),
             0,
@@ -770,6 +815,7 @@ contract HSGSuperModTest is HSGSMTestSetup {
             payable(address(0)),
             signatures
         );
+        vm.stopPrank();
     }
 
     function testSignersCannotAddOwners() public {
@@ -790,6 +836,8 @@ contract HSGSuperModTest is HSGSMTestSetup {
         // mock call to attempted new owner (doesn't matter if valid or not)
         mockIsWearerCall(addresses[9], signerHat, false);
 
+        // have one of the signers submit/exec the tx
+        vm.startPrank(addresses[0]);
         hsgsuper.scheduleTransaction(
             address(safe),
             0,
@@ -818,6 +866,7 @@ contract HSGSuperModTest is HSGSMTestSetup {
             payable(address(0)),
             signatures
         );
+        vm.stopPrank();
     }
 
     function testSignersCannotRemoveOwners() public {
@@ -838,6 +887,8 @@ contract HSGSuperModTest is HSGSMTestSetup {
         mockIsWearerCall(addresses[0], signerHat, true);
         mockIsWearerCall(addresses[1], signerHat, true);
 
+        // have one of the signers submit/exec the tx
+        vm.startPrank(addresses[0]);
         hsgsuper.scheduleTransaction(
             address(safe),
             0,
@@ -866,6 +917,7 @@ contract HSGSuperModTest is HSGSMTestSetup {
             payable(address(0)),
             signatures
         );
+        vm.stopPrank();
     }
 
     function testSignersCannotSwapOwners() public {
@@ -889,6 +941,8 @@ contract HSGSuperModTest is HSGSMTestSetup {
         // mock call to attempted new owner (doesn't matter if valid or not)
         mockIsWearerCall(toAdd, signerHat, false);
 
+        // have one of the signers submit/exec the tx
+        vm.startPrank(addresses[0]);
         hsgsuper.scheduleTransaction(
             address(safe),
             0,
@@ -917,6 +971,7 @@ contract HSGSuperModTest is HSGSMTestSetup {
             payable(address(0)),
             signatures
         );
+        vm.stopPrank();
     }
 
     function testCannotCallCheckTransactionFromNonSafe() public {
@@ -1065,6 +1120,8 @@ contract HSGSuperModTest is HSGSMTestSetup {
         mockIsWearerCall(addresses[0], signerHat, true);
         mockIsWearerCall(addresses[1], signerHat, true);
 
+        // have one of the signers submit/exec the tx
+        vm.startPrank(addresses[0]);
         hsgsuper.scheduleTransaction(
             address(safe),
             0,
@@ -1093,6 +1150,7 @@ contract HSGSuperModTest is HSGSMTestSetup {
             payable(address(0)),
             signatures
         );
+        vm.stopPrank();
     }
 
     function testTargetSigAttackFails() public {
@@ -1432,7 +1490,7 @@ contract HSGSuperModTest is HSGSMTestSetup {
         sigs = createNSigsForTx(safeTxHash, 2);
 
         // now submit the tx to the safe
-        vm.prank(attacker);
+        vm.startPrank(attacker);
         /* 
         Expect revert because of re-entry into checkTransaction
         While hsgsuper will throw the NoReentryAllowed error, 
@@ -1442,7 +1500,6 @@ contract HSGSuperModTest is HSGSMTestSetup {
 
         Since timelock change, it will actually throw "TimelockController: underlying transaction reverted"
         */
-
         hsgsuper.scheduleTransaction(
             gnosisMultisendLibrary,
             0,
@@ -1471,6 +1528,7 @@ contract HSGSuperModTest is HSGSMTestSetup {
             payable(address(0)),
             sigs
         );
+        vm.stopPrank();
 
         // no new owners have been added, despite the attacker's best efforts
         assertEq(safe.getOwners().length, 3, "post owner count");

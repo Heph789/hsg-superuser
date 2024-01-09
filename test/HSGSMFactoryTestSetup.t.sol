@@ -66,7 +66,7 @@ contract HSGSMFactoryTestSetup is Test {
     ) public returns (HSGSuperMod _hatsSignerGate, GnosisSafe _safe) {
         address hsg;
         address safe_;
-        (hsg, safe_) =
+        (hsg, , safe_) =
              factory.deployHSGSuperModAndSafeWithTimelock(_ownerHat, _signerHat, _minThreshold, _targetThreshold, _maxSigners, MIN_DELAY);
 
         _hatsSignerGate = HSGSuperMod(hsg);

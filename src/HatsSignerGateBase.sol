@@ -483,6 +483,8 @@ abstract contract HatsSignerGateBase is BaseGuard, SignatureDecoder, HatsOwnedIn
         if (_guardEntries > 1) revert NoReentryAllowed();
     }
 
+    /// @notice checkTransaction() will call this after its checks, but before the reentry check
+    /// @dev params mirror checkTransaction(). Should be overriden by inheriting contracts.
     function _additionalCheckTransaction(
         address to,
         uint256 value,

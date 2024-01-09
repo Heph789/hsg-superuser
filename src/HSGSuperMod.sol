@@ -76,7 +76,7 @@ contract HSGSuperMod is HatsSignerGateBase {
     /// @dev Must be implemented by all flavors of HatsSignerGate
     /// @param _account The address to check
     /// @return valid Whether `_account` is a valid signer
-    function isValidSigner(address _account) public view override returns (bool valid) {
+    function isValidSigner(address _account) public view override returns (bool valid) { // NOTE: might want to reconcile signers before trying to call this
         valid = HATS.isWearerOfHat(_account, signersHatId);
     }
 
@@ -97,6 +97,7 @@ contract HSGSuperMod is HatsSignerGateBase {
     }
 
     /// @notice wraps an execution to be proposed through the timelock controller. signers can just create an execution like they would normally and it will handle the timelock stuff
+    /// @dev Params mirror safe.execTransaction
     function scheduleTransaction(
         address to,
         uint256 value,
@@ -109,6 +110,7 @@ contract HSGSuperMod is HatsSignerGateBase {
         address payable refundReceiver,
         bytes calldata signatures
     ) public payable returns (bytes32) {
+        require(isValidSigner(msg.sender), "Non-signer trying to schedule transaction."); // in current implementation, ANYONE wearing the signer hat can execute transactions, not just those on the multi-sig
         bytes memory call = abi.encodeWithSignature(
             "execTransaction(address,uint256,bytes,uint8,uint256,uint256,uint256,address,address,bytes)",
             to,
@@ -127,9 +129,10 @@ contract HSGSuperMod is HatsSignerGateBase {
             0, // value
             call, // data
             bytes32(0), // predecessor
-            bytes32(0), // salt
+            bytes32(0), // salt. NOTE: should eventually auto increment salt for repeat proposals
             timelock.getMinDelay() // delay
         );
+        // Since timelock already logs scheduled transactions, probably don't need to log here. Maybe don't even need to return data. 
         return timelock.hashOperation(
             address(safe), // target
             0, // value
@@ -139,7 +142,8 @@ contract HSGSuperMod is HatsSignerGateBase {
         );
     }
 
-    // there should be a better way to execute the final transaction than this
+    /// @notice Executes a previously scheduled timelock transaction. Proposal must be READY in timelock controller. 
+    /// @dev params mirror safe.execTransaction
     function executeTimelockTransaction(
         address to,
         uint256 value,
@@ -152,6 +156,7 @@ contract HSGSuperMod is HatsSignerGateBase {
         address payable refundReceiver,
         bytes calldata signatures
     ) public payable {
+        require(isValidSigner(msg.sender), "Non-signer trying to execute transaction."); // in current implementation, ANYONE wearing the signer hat can execute transactions, not just those on the multi-sig
         bytes memory call = abi.encodeWithSignature(
             "execTransaction(address,uint256,bytes,uint8,uint256,uint256,uint256,address,address,bytes)",
             to,
@@ -174,7 +179,8 @@ contract HSGSuperMod is HatsSignerGateBase {
         );
     }
 
-    // prevent user from executing transactions outside of timelock
+    /// @notice prevent user from executing transactions outside of timelock
+    /// @dev params mirror checkTransaction (HatsSignerGateBase)
     function _additionalCheckTransaction(
         address to,
         uint256,

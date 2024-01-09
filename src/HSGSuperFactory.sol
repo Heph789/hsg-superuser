@@ -68,7 +68,13 @@ contract HSGSuperFactory {
         version = _version;
     }
 
-    // /// @notice Deploy a new HatsSignerGate and a new Safe, all wired up together
+    /// @notice Deploy a new HatsSignerGate with its Timelock and a new Safe, all wired up together
+    /// @param _ownerHatId Owner Hat ID 
+    /// @param _signersHatId Hat ID of the signers
+    /// @param _minThreshold minimum threshold for the safe
+    /// @param _targetThreshold target threshold for the safe (threshold will be set to this once number of signers at least equals this target)
+    /// @param _maxSigners max signers allowed on the safe
+    /// @param _minDelay minimum delay on the Open Zeppelin Timelock Controller. Measured against the block timestamp (which is in milliseconds I think)
     function deployHSGSuperModAndSafeWithTimelock(
         uint256 _ownerHatId,
         uint256 _signersHatId,
@@ -76,14 +82,56 @@ contract HSGSuperFactory {
         uint256 _targetThreshold,
         uint256 _maxSigners,
         uint256 _minDelay
-    ) public returns (address hsg, address payable safe) {
+    ) public returns (address hsg, address timelock, address payable safe) {
         // Deploy new safe but do not set it up yet
         safe = payable(gnosisSafeProxyFactory.createProxy(safeSingleton, hex"00"));
+        
+        // Deploy new hats signer gate
+        (hsg, timelock) = _deployHSGSuperModWithTimelock(_ownerHatId, _signersHatId, safe, _minThreshold, _targetThreshold, _maxSigners, _minDelay);
 
+        // Generate delegate call so the safe calls enableModule on itself during setup
+        bytes memory multisendAction = _generateMultisendAction(hsg, safe);
+
+        // Workaround for solidity dynamic memory array
+        address[] memory owners = new address[](1);
+        owners[0] = hsg;
+
+        // Call setup on safe to enable our new module/guard and set it as the sole initial owner
+        GnosisSafe(safe).setup(
+            owners,
+            1,
+            gnosisMultisendLibrary,
+            multisendAction, // set hsg as module and guard
+            gnosisFallbackLibrary,
+            address(0),
+            0,
+            payable(address(0))
+        );
+
+        emit HSGSuperModSetup(hsg, _ownerHatId, _signersHatId, safe, timelock, _minThreshold, _targetThreshold, _maxSigners);
+    }
+
+    /// @notice creates HSGSuperMod and Timelock attached to existing _safe
+    /// @dev check param descriptions from deployHSGSuperModAndSafeWithTimelock()
+    /// @param _safe existing Gnosis Safe that the signers will join
+    function _deployHSGSuperModWithTimelock(
+        uint256 _ownerHatId,
+        uint256 _signersHatId,
+        address _safe,
+        uint256 _minThreshold,
+        uint256 _targetThreshold,
+        uint256 _maxSigners,
+        uint256 _minDelay
+    ) internal returns (address hsg, address) {
         TimelockController timelock = new TimelockController(_minDelay, new address[](0), new address[](0), address(this));
 
-        // Deploy new hats signer gate
-        hsg = _deployHSGSuperModWithTimelock(_ownerHatId, _signersHatId, safe, address(timelock), _minThreshold, _targetThreshold, _maxSigners);
+        bytes memory initializeParams = abi.encode(
+            _ownerHatId, _signersHatId, _safe, hatsAddress, address(timelock), _minThreshold, _targetThreshold, _maxSigners, version
+        );
+
+        hsg = moduleProxyFactory.deployModule(
+            hsgsuperSingleton, abi.encodeWithSignature("setUp(bytes)", initializeParams), ++nonce
+        );
 
         // add this (which should be the governor contract) as the canceller and add the hsg as proposer, canceller, and anyone can execute (should look into this later)
         timelock.grantRole(timelock.PROPOSER_ROLE(), hsg);
@@ -92,129 +140,8 @@ contract HSGSuperFactory {
         timelock.grantRole(timelock.CANCELLER_ROLE(), msg.sender);
         timelock.renounceRole(timelock.TIMELOCK_ADMIN_ROLE(), address(this));
 
-        // Generate delegate call so the safe calls enableModule on itself during setup
-        bytes memory multisendAction = _generateMultisendAction(hsg, safe);
-
-        // Workaround for solidity dynamic memory array
-        address[] memory owners = new address[](1);
-        owners[0] = hsg;
-
-        // Call setup on safe to enable our new module/guard and set it as the sole initial owner
-        GnosisSafe(safe).setup(
-            owners,
-            1,
-            gnosisMultisendLibrary,
-            multisendAction, // set hsg as module and guard
-            gnosisFallbackLibrary,
-            address(0),
-            0,
-            payable(address(0))
-        );
-
-        emit HSGSuperModSetup(hsg, _ownerHatId, _signersHatId, safe, address(timelock), _minThreshold, _targetThreshold, _maxSigners);
-
-        return (hsg, safe);
+        return (hsg, address(timelock));
     }
-
-    function _deployHSGSuperModWithTimelock(
-        uint256 _ownerHatId,
-        uint256 _signersHatId,
-        address _safe, // existing Gnosis Safe that the signers will join
-        address _timelock,
-        uint256 _minThreshold,
-        uint256 _targetThreshold,
-        uint256 _maxSigners
-    ) internal returns (address hsg) {
-        bytes memory initializeParams = abi.encode(
-            _ownerHatId, _signersHatId, _safe, hatsAddress, _timelock, _minThreshold, _targetThreshold, _maxSigners, version
-        );
-
-        hsg = moduleProxyFactory.deployModule(
-            hsgsuperSingleton, abi.encodeWithSignature("setUp(bytes)", initializeParams), ++nonce
-        );
-
-        // emit HatsSignerGateSetup(hsg, _ownerHatId, _signersHatId, _safe, _minThreshold, _targetThreshold, _maxSigners);
-        // need a diff event for super mod
-    }
-
-    /// @notice Deploy a new HatsSignerGate and a new Safe, all wired up together
-    function deployHSGSuperModAndSafe(
-        uint256 _ownerHatId,
-        uint256 _signersHatId,
-        uint256 _minThreshold,
-        uint256 _targetThreshold,
-        uint256 _maxSigners
-    ) public returns (address hsg, address payable safe) {
-        // Deploy new safe but do not set it up yet
-        safe = payable(gnosisSafeProxyFactory.createProxy(safeSingleton, hex"00"));
-
-        // Deploy new hats signer gate
-        hsg = _deployHSGSuperMod(_ownerHatId, _signersHatId, safe, _minThreshold, _targetThreshold, _maxSigners);
-
-        // Generate delegate call so the safe calls enableModule on itself during setup
-        bytes memory multisendAction = _generateMultisendAction(hsg, safe);
-
-        // Workaround for solidity dynamic memory array
-        address[] memory owners = new address[](1);
-        owners[0] = hsg;
-
-        // Call setup on safe to enable our new module/guard and set it as the sole initial owner
-        GnosisSafe(safe).setup(
-            owners,
-            1,
-            gnosisMultisendLibrary,
-            multisendAction, // set hsg as module and guard
-            gnosisFallbackLibrary,
-            address(0),
-            0,
-            payable(address(0))
-        );
-
-        // emit HSGSuperModSetup(hsg, _ownerHatId, _signersHatId, safe, address(0), _minThreshold, _targetThreshold, _maxSigners);
-
-        return (hsg, safe);
-    }
-
-    function _deployHSGSuperMod(
-        uint256 _ownerHatId,
-        uint256 _signersHatId,
-        address _safe, // existing Gnosis Safe that the signers will join
-        uint256 _minThreshold,
-        uint256 _targetThreshold,
-        uint256 _maxSigners
-    ) internal returns (address hsg) {
-        bytes memory initializeParams = abi.encode(
-            _ownerHatId, _signersHatId, _safe, hatsAddress, address(0), _minThreshold, _targetThreshold, _maxSigners, version
-        );
-
-        hsg = moduleProxyFactory.deployModule(
-            hsgsuperSingleton, abi.encodeWithSignature("setUp(bytes)", initializeParams), ++nonce
-        );
-
-        // emit HatsSignerGateSetup(hsg, _ownerHatId, _signersHatId, _safe, _minThreshold, _targetThreshold, _maxSigners);
-        // need a diff event for super mod
-    }
-
-    // function _deployHSGSuperModWithTimelock(
-    //     uint256 _ownerHatId,
-    //     uint256 _signersHatId,
-    //     address _safe, // existing Gnosis Safe that the signers will join
-    //     address payable _timelock,
-    //     uint256 _minThreshold,
-    //     uint256 _targetThreshold,
-    //     uint256 _maxSigners
-    // ) internal returns (address hsg) {
-    //     bytes memory initializeParams = abi.encode(
-    //         _ownerHatId, _signersHatId, _safe, hatsAddress, _timelock, _minThreshold, _targetThreshold, _maxSigners, version
-    //     );
-
-    //     hsg = moduleProxyFactory.deployModule(
-    //         hsgsuperSingleton, abi.encodeWithSignature("setUp(bytes)", initializeParams), ++nonce
-    //     );
-
-    //     // emit HatsSignerGateSetup(hsg, _ownerHatId, _signersHatId, _safe, _minThreshold, _targetThreshold, _maxSigners);
-    //     // need a diff event for super mod
-    // }
 
     function _generateMultisendAction(address _hatsSignerGate, address _safe)
         internal
