@@ -397,10 +397,9 @@ contract HSGSuperModTest is HSGSMTestSetup {
         assertEq(timelock.isOperation(id), true);
     }
 
-    function testAdminTriesClawback() public {
+    function testAuthorityTriesClawback() public {
         addSigners(1);
         mockIsWearerCall(address(this), ownerHat, true);
-        mockIsAdminCall(address(this), signerHat, true);
         
         vm.deal(address(safe), 100); // sets safe's balance to 100
         
@@ -409,14 +408,13 @@ contract HSGSuperModTest is HSGSMTestSetup {
         assertEq(address(safe).balance, 50);
     }
 
-    function testNonAdminTriesClawback() public {
+    function testNonAuthorityTriesClawback() public {
         addSigners(1);
-        mockIsWearerCall(address(this), ownerHat, true);
-        mockIsAdminCall(address(this), signerHat, false);
+        mockIsWearerCall(address(this), ownerHat, false);
         
         vm.deal(address(safe), 100); // sets safe's balance to 100
 
-        vm.expectRevert("Not admin");
+        vm.expectRevert("UNAUTHORIZED");
         hsgsuper.clawback(50, addresses[0]);
     }
 

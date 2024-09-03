@@ -404,6 +404,7 @@ abstract contract HatsSignerGateBase is BaseGuard, SignatureDecoder, HatsOwnedIn
 
     /// @notice Pre-flight check on a `safe` transaction to ensure that it s signers are valid, called from within `safe.execTransactionFromModule()`
     /// @dev Overrides All params mirror params for `safe.execTransactionFromModule()`
+    /// @dev Modified by Chase
     function checkTransaction(
         address to,
         uint256 value,
@@ -462,6 +463,7 @@ abstract contract HatsSignerGateBase is BaseGuard, SignatureDecoder, HatsOwnedIn
         // record existing owners for post-flight check
         _existingOwnersHash = keccak256(abi.encode(owners));
 
+        // allows children to add custom pre-flight checks
         _additionalCheckTransaction(
             to,
             value,
@@ -492,6 +494,7 @@ abstract contract HatsSignerGateBase is BaseGuard, SignatureDecoder, HatsOwnedIn
      *     CAUTION: If the safe has any authority over the signersHat(s) — i.e. wears their admin hat(s) or is an eligibility or toggle module —
      *     then in some cases protections (3) and (4) may not hold. Proceed with caution if considering granting such authority to the safe.
      * @dev Modified from https://github.com/gnosis/zodiac-guard-mod/blob/988ebc7b71e352f121a0be5f6ae37e79e47a4541/contracts/ModGuard.sol#L86
+     * @dev Modified by Chase
      */
     function checkAfterExecution(bytes32 txHash, bool success) external override {
         if (msg.sender != address(safe)) revert NotCalledFromSafe();
@@ -533,6 +536,8 @@ abstract contract HatsSignerGateBase is BaseGuard, SignatureDecoder, HatsOwnedIn
         --_guardEntries;
     }
 
+    /// @notice internal function to be overridden. allows children to add additional pre-flight checks
+    /// @dev created by Chase
     function _additionalCheckTransaction(
         address to,
         uint256 value,
@@ -549,6 +554,8 @@ abstract contract HatsSignerGateBase is BaseGuard, SignatureDecoder, HatsOwnedIn
 
     }
 
+    /// @notice internal function to be overriden. allows children to add post-flight checks
+    /// @dev created by Chase
     function _additionalCheckAfterExecution(
         bytes32 txHash, bool success
     ) internal virtual {
