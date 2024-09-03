@@ -2,8 +2,7 @@
 pragma solidity ^0.8.13;
 
 import "forge-std/Test.sol";
-import { HatsSignerGateBase } from "../src/HatsSignerGate.sol";
-import { HSGSuperMod } from "../src/HSGSuperMod.sol";
+import { HSGSuperMod, HatsSignerGateBase } from "../src/HSGSuperMod.sol";
 import { HSGSuperFactory } from "../src/HSGSuperFactory.sol";
 import "@gnosis.pm/safe-contracts/contracts/GnosisSafe.sol";
 import "@gnosis.pm/safe-contracts/contracts/proxies/GnosisSafeProxyFactory.sol";

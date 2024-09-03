@@ -83,22 +83,27 @@ contract HSGSuperMod is HatsSignerGateBase, InternalGuardManager {
 
     // Chase's edits (yay)
 
-    /// @notice allow the owner hat to set the canceller role
+    /// @notice allow the owner/authority hat to set the canceller role
+    /// @dev Created by Chase
     function setCanceller(address _newCanceller) external onlyOwner {
         timelock.grantRole(timelock.CANCELLER_ROLE(), _newCanceller);
     }
 
+    /// @notice allow the owner/authority hat to remove cancellers
+    /// @dev Created by Chase
     function removeCanceller(address _remove) external onlyOwner {
         timelock.revokeRole(timelock.CANCELLER_ROLE(), _remove);
     }
 
+    /// @notice allow the owner/authority hat to add/remove guard
+    /// @dev remove guard by passing the 0 address
+    /// @dev Created by Chase
     function changeGuard(address guard) external onlyOwner {
         setGuard(guard);
     }
 
-    /// @notice Allows admin to send value back to itself
-    function clawback(uint256 amount, address dummy) external {
-        if (!HATS.isAdminOfHat(msg.sender, signersHatId)) revert("Not admin");
+    /// @notice Allows authority/owner to clawback money from the safe, to the "dummy"
+    function clawback(uint256 amount, address dummy) external onlyOwner {
         if (address(safe).balance < amount) revert("Amount is greater than balance");
         bool executed = safe.execTransactionFromModule(
             dummy,
@@ -122,10 +127,9 @@ contract HSGSuperMod is HatsSignerGateBase, InternalGuardManager {
         address payable refundReceiver,
         bytes calldata signatures
     ) public payable returns (bytes32) {
-        // might want to call the pre-check here
         // from GnosisSafe
-        address guard = getGuard();
         {
+            address guard = getGuard();
             if (guard != address(0)) {
                 Guard(guard).checkTransaction(
                     // Transaction info
@@ -175,7 +179,8 @@ contract HSGSuperMod is HatsSignerGateBase, InternalGuardManager {
         );
     }
 
-    // there should be a better way to execute the final transaction than this
+    /// @notice executes the timelock transaction
+    /// @dev this is the only way to execute the timelock transaction since this contract is the only listed "executor"
     function executeTimelockTransaction(
         address to,
         uint256 value,
@@ -210,7 +215,7 @@ contract HSGSuperMod is HatsSignerGateBase, InternalGuardManager {
         );
     }
 
-    // prevent user from executing transactions outside of timelock
+    /// @notice prevent user from executing transactions outside of timelock
     function _additionalCheckTransaction(
         address to,
         uint256,
@@ -228,6 +233,7 @@ contract HSGSuperMod is HatsSignerGateBase, InternalGuardManager {
         if (msgSender != address(timelock)) require(to == address(timelock), "Transactions must go through the timelock.");
     }
 
+    /// @notice calls additional guard check
     function _additionalCheckAfterExecution(
         bytes32 txHash, bool success
     ) override internal {
