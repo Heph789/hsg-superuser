@@ -402,10 +402,36 @@ contract HSGSuperModTest is HSGSMTestSetup {
         mockIsWearerCall(address(this), ownerHat, true);
         
         vm.deal(address(safe), 100); // sets safe's balance to 100
-        
-        hsgsuper.clawback(50, addresses[0]);
+
+        hsgsuper.superExecute(addresses[0], 50, "");
 
         assertEq(address(safe).balance, 50);
+    }
+
+    function testAuthorityTriesClawbackInsufficientBalance() public {
+        addSigners(1);
+        mockIsWearerCall(address(this), ownerHat, true);
+
+        vm.expectRevert("Insufficient balance");
+        hsgsuper.superExecute(addresses[0], 50, "");
+    }
+
+    function testAuthorityTriesContractCall() public {
+        addSigners(1);
+        mockIsWearerCall(address(this), ownerHat, true);
+
+        address mock = address(444); // creates a mock contract to send an arbitrary transaction to
+
+        // mocks 
+        vm.mockCall(
+            mock,
+            abi.encodeWithSignature("transact(to, value)"),
+            abi.encode(true)
+        );
+
+        bytes memory call = abi.encodeWithSignature("transact(to, value)", address(this), 1000);
+        
+        hsgsuper.superExecute(mock, 0, call);
     }
 
     function testNonAuthorityTriesClawback() public {
@@ -415,7 +441,7 @@ contract HSGSuperModTest is HSGSMTestSetup {
         vm.deal(address(safe), 100); // sets safe's balance to 100
 
         vm.expectRevert("UNAUTHORIZED");
-        hsgsuper.clawback(50, addresses[0]);
+        hsgsuper.superExecute(addresses[0], 50, "");
     }
 
     function testNonTimelockExecTxByHatWearers() public {
