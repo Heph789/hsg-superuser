@@ -68,7 +68,7 @@ contract HSGSuperFactory {
         version = _version;
     }
 
-    // /// @notice Deploy a new HatsSignerGate and a new Safe, all wired up together
+    /// @notice Deploy a new HatsSignerGate and a new Safe, along with the TimelockController, all wired up together
     function deployHSGSuperModAndSafeWithTimelock(
         uint256 _ownerHatId,
         uint256 _signersHatId,
@@ -196,27 +196,6 @@ contract HSGSuperFactory {
         // emit HatsSignerGateSetup(hsg, _ownerHatId, _signersHatId, _safe, _minThreshold, _targetThreshold, _maxSigners);
         // need a diff event for super mod
     }
-
-    // function _deployHSGSuperModWithTimelock(
-    //     uint256 _ownerHatId,
-    //     uint256 _signersHatId,
-    //     address _safe, // existing Gnosis Safe that the signers will join
-    //     address payable _timelock,
-    //     uint256 _minThreshold,
-    //     uint256 _targetThreshold,
-    //     uint256 _maxSigners
-    // ) internal returns (address hsg) {
-    //     bytes memory initializeParams = abi.encode(
-    //         _ownerHatId, _signersHatId, _safe, hatsAddress, _timelock, _minThreshold, _targetThreshold, _maxSigners, version
-    //     );
-
-    //     hsg = moduleProxyFactory.deployModule(
-    //         hsgsuperSingleton, abi.encodeWithSignature("setUp(bytes)", initializeParams), ++nonce
-    //     );
-
-    //     // emit HatsSignerGateSetup(hsg, _ownerHatId, _signersHatId, _safe, _minThreshold, _targetThreshold, _maxSigners);
-    //     // need a diff event for super mod
-    // }
 
     function _generateMultisendAction(address _hatsSignerGate, address _safe)
         internal
