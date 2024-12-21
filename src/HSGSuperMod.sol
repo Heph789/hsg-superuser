@@ -101,15 +101,16 @@ contract HSGSuperMod is HatsSignerGateBase, InternalGuardManager {
     function changeGuard(address guard) external onlyOwner {
         setGuard(guard);
     }
-
-    /// @notice Allows authority/owner to clawback money from the safe, to the "dummy"
-    function clawback(uint256 amount, address dummy) external onlyOwner {
-        if (address(safe).balance < amount) revert("Amount is greater than balance");
+    
+    /// @notice Allows admin to execute arbitrary transactions from the safe
+    /// @dev Params mirror safe.execTransactionFromModule() with exception to call type
+    function superExecute(address to, uint256 value, bytes memory data) external onlyOwner {
+        if (address(safe).balance < value) revert("Insufficient balance");
         bool executed = safe.execTransactionFromModule(
-            dummy,
-            amount,
-            "",
-            Enum.Operation.Call
+            to,
+            value,
+            data,
+            Enum.Operation.Call // we force it to be a call since transactions should come from safe, not the module
         );
         if (!executed) revert("Could not execute.");
     }
