@@ -4,3 +4,4 @@ out/
 broadcast/
 .env
 .DS_Store
+storage/
