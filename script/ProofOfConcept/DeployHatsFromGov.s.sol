@@ -8,7 +8,7 @@ import "../../src/HSGSuperMod.sol";
 import "hats-protocol/Interfaces/IHats.sol";
 import "@openzeppelin/contracts/governance/IGovernor.sol";
 
-contract CreateCouncilHatSettings {
+contract CreateCouncilHatSettings { // set these settings mannualy
   IGovernor public governor = IGovernor(0xa9347068F7C903B3530192f121D8a896260f25D1);
   IHats public hats = IHats(0x3bc1A0Ad72417f2d411118085256fC53CBdDd137);
 
@@ -20,7 +20,7 @@ contract CreateCouncilHatSettings {
   bool councilHatIsMutable = true;
   address[] public hatOwners = [0x719E4F1B69efbf4da45f70Ec4bE5dd2321B0a821, 0x1b6967Bc7868F5a0CB78971427ef75ee4F8EE1c8, 0x8908dccF5A1aB99D6bE0d973eD49693283607bC7];
 
-  string public propDesc = "Proposal to create council hat";
+  string public propDesc = "Proposal to create council hat2";
 }
 
 // forge script script/ProofOfConcept/DeployHatsFromGov.s.sol:CreateCouncilHat -f sepolia
@@ -32,16 +32,24 @@ contract CreateCouncilHat is CreateCouncilHatSettings, Script {
         address deployer = vm.rememberKey(privKey);
         vm.startBroadcast(deployer);
         // mint the tophat to governor. comment out if manually setting tophatID
-        // tophatID = hats.mintTopHat(address(governor), tophatDesc, "");
-        // console2.log("Top hat ID: ", tophatID);
+        tophatID = hats.mintTopHat(address(governor), tophatDesc, "");
+        console2.log("Top hat ID: ", tophatID);
 
         // propose governor for creating hat
         // createHat can't have 0 addresses for eligibility module or toggle module. set to governor instead
+        // hats.createHat(tophatID, councilHatDesc, councilHatMaxSupply, address(governor), address(governor), councilHatIsMutable, "");
         bytes memory createHatCall = abi.encodeWithSignature("createHat(uint256,string,uint32,address,address,bool,string)", tophatID, councilHatDesc, councilHatMaxSupply, address(governor), address(governor), councilHatIsMutable, "");
         uint256 newHatId = hats.getNextId(tophatID);
         console2.log("Hat ID: ", newHatId);
 
-        bytes memory mintHatCall = abi.encodeWithSignature("batchMintHats(uint256[],address[])", [newHatId, newHatId, newHatId], hatOwners);
+        uint256[] memory hatIdArr = new uint256[](3);
+        for (uint i = 0; i < 3; i++) {
+          hatIdArr[i] = newHatId;
+        }
+
+        // // for catching errors
+        // hats.batchMintHats(hatIdArr, hatOwners);
+        bytes memory mintHatCall = abi.encodeWithSignature("batchMintHats(uint256[],address[])", hatIdArr, hatOwners);
         address[] memory targets = new address[](2);
         targets[0] = address(hats);
         targets[1] = address(hats);
@@ -84,7 +92,14 @@ contract ExecuteCreateCouncilHat is CreateCouncilHatSettings, Script {
     uint256 newHatId = hats.getNextId(tophatID);
     console2.log("Hat ID: ", newHatId);
 
-    bytes memory mintHatCall = abi.encodeWithSignature("batchMintHats(uint256[],address[])", [newHatId, newHatId, newHatId], hatOwners);
+    uint256[] memory hatIdArr = new uint256[](3);
+    for (uint i = 0; i < 3; i++) {
+      hatIdArr[i] = newHatId;
+    }
+    // // for catching errors
+    // hats.batchMintHats(hatIdArr, hatOwners);
+    bytes memory mintHatCall = abi.encodeWithSignature("batchMintHats(uint256[],address[])", hatIdArr, hatOwners);
+
     address[] memory targets = new address[](2);
     targets[0] = address(hats);
     targets[1] = address(hats);
@@ -106,23 +121,9 @@ contract ExecuteCreateCouncilHat is CreateCouncilHatSettings, Script {
     for (uint256 i = 0; i < calldatas.length; i++) {
       console2.log("Calldata[", i, "]: ", vm.toString(calldatas[i]));
     }
-    
-    // some testing
-    // uint256 proposalHash = governor.hashProposal(targets, values, calldatas, keccak256(bytes(propDesc)));
-    // console2.log("Proposal Hash: ", proposalHash);
-
-    // uint256 currentBlock = block.number;
-    // console2.log("Current Block Number: ", currentBlock);
-
-    // uint256 proposalDeadline = governor.proposalDeadline(proposalHash);
-    // console2.log("Proposal Deadline: ", proposalDeadline);
-
-    // uint256 blocksUntilDeadline = proposalDeadline - currentBlock;
-    // console2.log("Blocks Until Deadline: ", blocksUntilDeadline);
 
     governor.execute(targets, values, calldatas, keccak256(bytes(propDesc)));
     
-
     vm.stopBroadcast();
   }
 }

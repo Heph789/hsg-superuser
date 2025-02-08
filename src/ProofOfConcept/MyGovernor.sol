@@ -18,7 +18,7 @@ contract MyGovernor is
         Governor("MyGovernor")
         GovernorSettings(
             0, // 0 day voting delay
-            30 minutes, // 30 min voting period
+            100, // voting delay of 100 BLOCKS (not unit of time)
             0 // 0 proposal threshold
         )
         GovernorVotes(_token)
