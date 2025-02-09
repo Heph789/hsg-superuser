@@ -110,7 +110,8 @@ The wearer of the `ownerHat` can make the following changes to Hats Signer Gate:
 > Presumably, most users are deploying these contracts from their DAO, which already wears its own top hat. For this example, see _script/ProofOfConcept/DeployHatsFromGov.s.sol_
 
 1. Make sure the rpc endpoint, etherscan api key, and private key is set in your environment (`.env`) and in `foundry.toml` for your deploy chain
-2. run the script in `script/DeployHatsMod.s.sol`
+2. Set the settings properly in `script/DeployHatsMod.s.sol` in `CreateCouncilHatSettings`
+3. run the script in `script/DeployHatsMod.s.sol`
 
 ## Demos
 

@@ -34,8 +34,10 @@ wrap_comments = false
 
 [rpc_endpoints]
 sepolia = "${SEPOLIA_RPC}"
+optimism = "${OPTIMISM_RPC}"
 
 [etherscan]
 sepolia = { key = "${ETHERSCAN_KEY}" }
+optimism = {key = "${OPTIMISTIC_ETHERSCAN_KEY}", url = "https://api-optimistic.etherscan.io/api"}
 
 # See more config options https://github.com/foundry-rs/foundry/tree/master/config

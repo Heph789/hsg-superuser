@@ -134,9 +134,6 @@ contract HSGSuperFactory {
         hsg = moduleProxyFactory.deployModule(
             hsgsuperSingleton, abi.encodeWithSignature("setUp(bytes)", initializeParams), ++nonce
         );
-
-        // emit HatsSignerGateSetup(hsg, _ownerHatId, _signersHatId, _safe, _minThreshold, _targetThreshold, _maxSigners);
-        // need a diff event for super mod
     }
 
     /// @notice Deploy a new HatsSignerGate and a new Safe, all wired up together
@@ -172,8 +169,6 @@ contract HSGSuperFactory {
             payable(address(0))
         );
 
-        // emit HSGSuperModSetup(hsg, _ownerHatId, _signersHatId, safe, address(0), _minThreshold, _targetThreshold, _maxSigners);
-
         return (hsg, safe);
     }
 
@@ -192,9 +187,6 @@ contract HSGSuperFactory {
         hsg = moduleProxyFactory.deployModule(
             hsgsuperSingleton, abi.encodeWithSignature("setUp(bytes)", initializeParams), ++nonce
         );
-
-        // emit HatsSignerGateSetup(hsg, _ownerHatId, _signersHatId, _safe, _minThreshold, _targetThreshold, _maxSigners);
-        // need a diff event for super mod
     }
 
     function _generateMultisendAction(address _hatsSignerGate, address _safe)
