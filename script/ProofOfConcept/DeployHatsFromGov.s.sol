@@ -4,7 +4,6 @@ pragma solidity ^0.8.13;
 import "forge-std/Script.sol";
 
 import "../../src/HSGSuperMod.sol";
-// import "../../src/HSGSuperFactory.sol";
 import "hats-protocol/Interfaces/IHats.sol";
 import "@openzeppelin/contracts/governance/IGovernor.sol";
 
@@ -13,7 +12,7 @@ contract CreateCouncilHatSettings { // set these settings mannualy
   IHats public hats = IHats(0x3bc1A0Ad72417f2d411118085256fC53CBdDd137);
 
   string public tophatDesc = "";
-  // manually set, or don't set if you plan on minting
+  // manually set, or set to 0 if you plan on minting
   uint256 public tophatID = 19680761067019967050106921013524330391755115428454617911205635481927680;
   string public councilHatDesc = "";
   uint32 public councilHatMaxSupply = 10;
@@ -31,9 +30,11 @@ contract CreateCouncilHat is CreateCouncilHatSettings, Script {
         uint256 privKey = vm.envUint("PRIVATE_KEY");
         address deployer = vm.rememberKey(privKey);
         vm.startBroadcast(deployer);
-        // mint the tophat to governor. comment out if manually setting tophatID
-        tophatID = hats.mintTopHat(address(governor), tophatDesc, "");
-        console2.log("Top hat ID: ", tophatID);
+        if (tophatID == 0) {
+          // mint the tophat to governor. comment out if manually setting tophatID
+          tophatID = hats.mintTopHat(address(governor), tophatDesc, "");
+          console2.log("Top hat ID: ", tophatID);
+        }
 
         // propose governor for creating hat
         // createHat can't have 0 addresses for eligibility module or toggle module. set to governor instead

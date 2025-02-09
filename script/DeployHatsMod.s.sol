@@ -1,38 +1,76 @@
-// // SPDX-License-Identifier: UNLICENSED
-// pragma solidity ^0.8.13;
+// SPDX-License-Identifier: UNLICENSED
+pragma solidity ^0.8.13;
 
-// import "forge-std/Script.sol";
-// import "../src/HatsSignerGate.sol";
-// import "../src/HatsSignerGateFactory.sol";
+import "forge-std/Script.sol";
 
-// contract DeployHatsSignerGate is Script {
-//     HatsSignerGateFactory public hsgFactory; // to deploy
-//     uint256 public ownerHatId = 80879840001451919384001045261058892020911433267621717443310830747648;
-//     uint256 public signersHatId = 80985152293120476570698963288742562453230328363022266554565141725184;
-//     address public safe = 0x56c7A84Cf42Cfe70BfdF14140747ffc63b96E51A;
-//     // address public hats = 0x245e5B56C18B18aC2d72F94C5F7bE1D52497A8aD;
-//     uint256 public minThreshold = 3;
-//     uint256 public targetThreshold = 3;
-//     uint256 public maxSigners = 9;
-//     // string public version = "MC Super Scouts Demo #1";
-//     // string public version = "Rinkeby test #5";
+import "../src/HSGSuperMod.sol";
+import "hats-protocol/Interfaces/IHats.sol";
+import "@openzeppelin/contracts/governance/IGovernor.sol";
 
-//     string public version = "Cub Scouts Beta 02";
+contract CreateCouncilHatSettings { // set these settings mannualy
+  // hats contract address for sepolia. set manually for different chains
+  IHats public hats = IHats(0x3bc1A0Ad72417f2d411118085256fC53CBdDd137);
 
-//     function run() external {
-//         uint256 privKey = vm.envUint("PRIVATE_KEY");
-//         address deployer = vm.rememberKey(privKey);
-//         vm.startBroadcast(deployer);
+  string public tophatDesc = "";
+  // manually set, or set to 0 if you plan on minting
+  uint256 public tophatID = 0;
+  // set to a non-zero address
+  address public mintTopHatTo = address(0);
+  // eligibility/toggle module CANNOT be 0 address
+  address public eligibilityModule = address(0);
+  address public toggleModule = address(0);
+  string public councilHatDesc = "";
+  uint32 public councilHatMaxSupply = 10;
+  bool councilHatIsMutable = true;
+  address[] public hatOwners = [0x719E4F1B69efbf4da45f70Ec4bE5dd2321B0a821, 0x1b6967Bc7868F5a0CB78971427ef75ee4F8EE1c8, 0x8908dccF5A1aB99D6bE0d973eD49693283607bC7];
+}
+// // simulate
+// forge script script/DeployHatsMod.s.sol:DeployHatsMod -f sepolia
+// // broadcast
+// forge script script/DeployHatsMod.s.sol:DeployHatsMod -f sepolia --broadcast
+contract DeployHatsMod is CreateCouncilHatSettings, Script {
 
-//         /* ddress hatsSignerGate = */
-//         hsgFactory.deployHatsSignerGate(ownerHatId, signersHatId, safe, minThreshold, targetThreshold, maxSigners);
+    function run() external {
+        uint256 privKey = vm.envUint("PRIVATE_KEY");
+        address deployer = vm.rememberKey(privKey);
+        vm.startBroadcast(deployer);
 
-//         vm.stopBroadcast();
-//     }
+        if (mintTopHatTo == address(0)) {
+          mintTopHatTo = deployer;
+        }
 
-//     // forge script script/HatsSignerGate.s.sol:DeployHatsSignerGate --rpc-url $RINKEBY_RPC --verify --etherscan-api-key $ETHERSCAN_KEY --broadcast
+        if (eligibilityModule == address(0)) {
+          eligibilityModule = mintTopHatTo;
+        }
 
-//     // forge script script/HatsSignerGate.s.sol:DeployHatsSignerGate --rpc-url $GC_RPC --private-key $PRIVATE_KEY --verify --etherscan-api-key $GNOSISSCAN_KEY --broadcast
+        if (toggleModule == address(0)) {
+          toggleModule = mintTopHatTo;
+        }
 
-//     // forge script script/HatsSignerGate.s.sol:DeployHatsSignerGate --rpc-url $GC_RPC --verify --etherscan-api-key $GNOSISSCAN_KEY --broadcast
-// }
+        if (tophatID == 0) {
+          // mint the tophat to governor. comment out if manually setting tophatID
+          tophatID = hats.mintTopHat(deployer, tophatDesc, "");
+          console2.log("Top hat ID: ", tophatID);
+        }
+
+        // propose governor for creating hat
+        // createHat can't have 0 addresses for eligibility module or toggle module. set to governor instead
+        uint256 newHatId = hats.createHat(tophatID, councilHatDesc, councilHatMaxSupply, eligibilityModule, toggleModule, councilHatIsMutable, "");
+
+        console2.log("New hat ID: ", newHatId);
+
+        uint256[] memory hatIdArr = new uint256[](3);
+        for (uint i = 0; i < 3; i++) {
+          hatIdArr[i] = newHatId;
+        }
+
+        // // for catching errors
+        hats.batchMintHats(hatIdArr, hatOwners);
+
+        if (mintTopHatTo != deployer) {
+          hats.transferHat(tophatID, deployer, mintTopHatTo);
+        }
+
+        vm.stopBroadcast();
+    }
+}
