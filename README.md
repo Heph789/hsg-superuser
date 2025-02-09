@@ -97,6 +97,14 @@ The wearer of the `ownerHat` can make the following changes to Hats Signer Gate:
 
 **Hats Contract:** `0x3bc1A0Ad72417f2d411118085256fC53CBdDd137`
 
+### Sepolia
+
+**HSGSuperFactory:** `0x85b7B1afb4f8955CC82e6b3fa5d1066dfb2487fA`
+
+**HSGSuperMod Singleton:** `0xff3660d13BfA194744030577296236fA0cd18c70`
+
+**Hats Contract:** `0x3bc1A0Ad72417f2d411118085256fC53CBdDd137`
+
 ## How to Deploy
 
 ### Deploying on a new chain
@@ -112,6 +120,7 @@ The wearer of the `ownerHat` can make the following changes to Hats Signer Gate:
 1. Make sure the rpc endpoint, etherscan api key, and private key is set in your environment (`.env`) and in `foundry.toml` for your deploy chain
 2. Set the settings properly in `script/DeployHatsMod.s.sol` in `CreateCouncilHatSettings`
 3. run the script in `script/DeployHatsMod.s.sol`
+4. In order for your safe to be usable, the signer role must be claimed by the hats wearers. Navigate to the [beta app](https://hsg-safe-wallet-7717vf63p-chaselbjeter-gmailcoms-projects.vercel.app/), add the newly deployed safe as a safe, and press the grayed out "New Transaction" button to claim the signer role.
 
 ## Demos
 
