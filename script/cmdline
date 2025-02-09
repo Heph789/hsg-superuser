@@ -1,7 +1,0 @@
-EXAMPLE COMMAND TO DEPLOY CONTRACT:
-
-forge create --rpc-url "URL HERE" \
-    --constructor-args "" "" "" "" "" "" "" "" \
-    --mnemonic "" \
-    --mnemonic-index _ \
-    src/HSGSuperFactory.sol:HSGSuperFactory
