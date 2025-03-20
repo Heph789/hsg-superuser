@@ -125,4 +125,5 @@ The wearer of the `ownerHat` can make the following changes to Hats Signer Gate:
 ## Demos
 
 V0.1: https://youtu.be/byJVwVAAzq0
+
 V1.0: https://youtu.be/GwBMuejQbEo
